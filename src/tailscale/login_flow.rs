@@ -1,5 +1,5 @@
-pub fn should_start_login(_have_node_key: bool) -> bool {
-    unimplemented!("implemented after the tests prove the intended login behavior")
+pub fn should_start_login(have_node_key: bool) -> bool {
+    !have_node_key
 }
 
 #[cfg(test)]
