@@ -41,6 +41,14 @@ jobs:
           cd staging
           zip -r ../release.zip api start.sh public/
 
+      - name: Package Discloud edge bundle
+        run: |
+          mkdir -p deploy-edge
+          cp Dockerfile deploy-edge/Dockerfile
+          cp discloud.config deploy-edge/discloud.config
+          cd deploy-edge
+          zip -r ../deploy-edge.zip Dockerfile discloud.config
+
       - name: Move edge tag to this commit
         run: |
           git config user.name "github-actions[bot]"
@@ -55,4 +63,6 @@ jobs:
           name: Edge
           prerelease: true
           make_latest: false
-          files: release.zip
+          files: |
+            release.zip
+            deploy-edge.zip
