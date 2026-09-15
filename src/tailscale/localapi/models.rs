@@ -30,6 +30,8 @@ pub struct LocalStatus {
     pub backend_state: String,
     #[serde(rename = "AuthURL")]
     pub auth_url: Option<String>,
+    #[serde(rename = "HaveNodeKey", default)]
+    pub have_node_key: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -57,4 +59,28 @@ pub struct Prefs {
 
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, serde_json::Value>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LocalStatus;
+
+    #[test]
+    fn parses_have_node_key_from_localapi_status() {
+        let status: LocalStatus = serde_json::from_str(
+            r#"{"BackendState":"NeedsLogin","AuthURL":null,"HaveNodeKey":true}"#,
+        )
+        .expect("status should deserialize");
+
+        assert!(status.have_node_key);
+    }
+
+    #[test]
+    fn defaults_have_node_key_to_false_when_missing() {
+        let status: LocalStatus =
+            serde_json::from_str(r#"{"BackendState":"NeedsLogin","AuthURL":null}"#)
+                .expect("status should deserialize");
+
+        assert!(!status.have_node_key);
+    }
 }
