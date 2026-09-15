@@ -203,9 +203,7 @@ pub async fn init_tailscale_flow() -> Result<tokio::process::Child, String> {
                 if state == "Running" {
                     tracing::info!("Tailscale is authenticated and running.");
                     break;
-                } else if state == "NeedsLogin"
-                    && login_method == LoginMethod::Interactive
-                {
+                } else if state == "NeedsLogin" && login_method == LoginMethod::Interactive {
                     if let Some(auth_url) = status.auth_url {
                         if Some(&auth_url) != last_auth_url.as_ref() && !auth_url.is_empty() {
                             let clickable = crate::logging::clickable_terminal_link(&auth_url);
