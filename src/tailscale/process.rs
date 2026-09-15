@@ -4,6 +4,7 @@ use tokio::process::Command;
 
 use crate::tailscale::localapi::endpoints::login_interactive;
 use crate::tailscale::localapi::{get_local_status, get_prefs, start, Options, Prefs};
+use crate::tailscale::login_flow::should_start_login;
 use crate::tailscale::process_args::build_tailscaled_args;
 
 const TAILSCALE_SOCKET_PATH: &str = "/var/run/tailscale/tailscaled.sock";
@@ -66,8 +67,9 @@ pub async fn start_tailscaled() -> Result<tokio::process::Child, String> {
 /// Tailscale initialization flow:
 /// 1. Spawn tailscaled
 /// 2. Wait for the LocalAPI socket to become available
-/// 3. Trigger interactive login via LocalAPI
-/// 4. Poll status until authentication completes
+/// 3. Start/configure the backend with prefs and optional auth key
+/// 4. Start the login phase when the daemon does not yet have a node key
+/// 5. Poll status until authentication completes
 pub async fn init_tailscale_flow() -> Result<tokio::process::Child, String> {
     let tailscaled_child = start_tailscaled().await?;
 
@@ -86,6 +88,7 @@ pub async fn init_tailscale_flow() -> Result<tokio::process::Child, String> {
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     };
 
+    let need_login = should_start_login(initial_status.have_node_key);
     let mut last_auth_url: Option<String> = initial_status.auth_url.filter(|u| !u.is_empty());
 
     // Query current preferences to modify and send to /localapi/v0/start
@@ -105,7 +108,6 @@ pub async fn init_tailscale_flow() -> Result<tokio::process::Child, String> {
     let auth_key = std::env::var("TAILSCALE_AUTHKEY")
         .ok()
         .filter(|s| !s.is_empty());
-    let need_login = auth_key.is_none();
 
     prefs.hostname = Some(hostname);
     prefs.route_all = Some(true);
@@ -122,7 +124,7 @@ pub async fn init_tailscale_flow() -> Result<tokio::process::Child, String> {
     start(opts).await?;
 
     if need_login {
-        tracing::debug!("Triggering interactive login...");
+        tracing::debug!("Starting Tailscale login phase...");
         login_interactive().await?;
     }
 
