@@ -4,18 +4,31 @@ use tokio::process::Command;
 
 use crate::tailscale::localapi::endpoints::login_interactive;
 use crate::tailscale::localapi::{get_local_status, get_prefs, start, Options, Prefs};
+use crate::tailscale::process_args::build_tailscaled_args;
+
+const TAILSCALE_SOCKET_PATH: &str = "/var/run/tailscale/tailscaled.sock";
 
 /// Spawn the `tailscaled` daemon as a child process
 pub async fn start_tailscaled() -> Result<tokio::process::Child, String> {
     let tailscale_state = std::env::var("TAILSCALE_STATE")
         .unwrap_or_else(|_| "/home/discloud/tailscale.state".to_string());
+    let socks5_server = std::env::var("TAILSCALE_SOCKS5_LISTEN")
+        .ok()
+        .filter(|value| !value.trim().is_empty());
 
     tracing::debug!("Starting tailscaled child process");
+    if let Some(listen_addr) = socks5_server.as_deref() {
+        tracing::info!(listen_addr = %listen_addr, "Outbound SOCKS5 proxy enabled");
+    }
+
+    let args = build_tailscaled_args(
+        &tailscale_state,
+        TAILSCALE_SOCKET_PATH,
+        socks5_server.as_deref(),
+    );
 
     let mut cmd = Command::new("tailscaled");
-    cmd.arg("--tun=userspace-networking")
-        .arg(format!("--state={}", tailscale_state))
-        .arg("--socket=/var/run/tailscale/tailscaled.sock")
+    cmd.args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
