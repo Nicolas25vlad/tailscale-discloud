@@ -1,8 +1,8 @@
 FROM debian:bookworm-slim
 
 ARG BUILD_SOURCE=remote
-ARG TUNNEL_MANAGER_VERSION=latest
-ARG GITHUB_REPO=jackskelt/tailscale-discloud
+ARG TUNNEL_MANAGER_VERSION=edge
+ARG GITHUB_REPO=Nicolas25vlad/tailscale-discloud
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TAILSCALE_STATE=/home/discloud/tailscale.state
